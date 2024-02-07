@@ -1,1 +1,3 @@
-BOT_TOKEN = ここにBOTのトークン
+BOT_TOKEN = [ここにBOTのトークン]
+RUN_CHANEL_NAME = [ここにコード打つところのチャンネル名]
+MAX_EMBED_TEXT_SIZE = [1024]

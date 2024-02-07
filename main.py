@@ -3,25 +3,35 @@ import discord
 import datetime
 import subprocess, sys
 
-def load_config():
-    f = open("config.txt", "r", encoding="UTF-8")
-    config_text = f.read()
-    print("test:" + config_text)
-    f.close()
-
-    bot_token_text = config_text.replace(" ", "")
-    d_index = bot_token_text.index("BOT_TOKEN=")
-    TOKEN = bot_token_text[d_index:].replace("BOT_TOKEN=","")
-
-    return TOKEN
-
-TOKEN = load_config()
 client = discord.Client(intents=discord.Intents.all())
 path = "code/"
 
+def get_config(config_text,config_name):
+    text1 = config_text[config_text.index(config_name + "="):].replace(config_name + "=","")
+    start = text1.index('[') + 1
+    end = text1.index(']')
+    return text1[start:end]
+
+def load_config():
+    f = open("config.txt", "r", encoding="UTF-8")
+    config_text = f.read()
+    f.close()
+
+    config_text = config_text.replace(" ", "")
+    bot_token = get_config(config_text,"BOT_TOKEN")
+    run_chanel = get_config(config_text,"RUN_CHANEL_NAME")
+    max_embed_text_size = get_config(config_text,"MAX_EMBED_TEXT_SIZE")
+
+    return bot_token,run_chanel,max_embed_text_size
+
+configs = load_config()
+BOT_TOKEN = configs[0]
+RUN_CHANEL = configs[1]
+MAX_EMBED_TEXT_SIZE = int(configs[2])
+
 @client.event
 async def on_ready():
-    message = "{0.user}".format(client) + "としてログインしました。"
+    message = "{0.user}".format(client) + "を起動しました。"
     dt_now = datetime.datetime.now()
 
     print(message)
@@ -34,15 +44,13 @@ async def on_ready():
     embed.set_footer(text="Made by hannsi │ " + dt_now.strftime("%Y年%m月%d日 %H:%M:%S"))
     embed.add_field(name="",value=message)
 
-    ch_name = "実行"
-
     for channel in client.get_all_channels():
-	    if channel.name == ch_name:
+	    if channel.name == RUN_CHANEL:
 		    await channel.send(embed=embed)
 
 @client.event
 async def on_close():
-    message = "{0.user}".format(client) + "はログアウトしました。"
+    message = "{0.user}".format(client) + "を終了させました。"
     dt_now = datetime.datetime.now()
 
     print(message)
@@ -55,16 +63,16 @@ async def on_close():
     embed.set_footer(text="Made by hannsi │ " + dt_now.strftime("%Y年%m月%d日 %H:%M:%S"))
     embed.add_field(name="",value=message)
 
-    ch_name = "実行"
-
     for channel in client.get_all_channels():
-	    if channel.name == ch_name:
+	    if channel.name == RUN_CHANEL:
 		    await channel.send(embed=embed)
 
 @client.event
 async def on_message(message):
     dt_now = datetime.datetime.now()
     if message.author == client.user:
+        return
+    if message.channel.name != RUN_CHANEL:
         return
 
     code = message.content
@@ -80,13 +88,22 @@ async def on_message(message):
     if result[2] == 1:
         r = error
 
+    result_text = result[0]
+
+    title = "実行結果"
+
+    if(len(result_text) > MAX_EMBED_TEXT_SIZE):
+        result_text = result_text[0:MAX_EMBED_TEXT_SIZE]
+        title = title + "(文字数制限[" + str(MAX_EMBED_TEXT_SIZE) + "]により一部結果が省かれています。)"
+
     embed = discord.Embed(
-                title="実行結果",
+                title=title,
                 color=0xff1010,
                 description="",                
         )
     embed.set_footer(text="実行者 : " + author + " │ " + dt_now.strftime("%Y年%m月%d日 %H:%M:%S"))
-    embed.add_field(name="結果",value=result[0])
+    embed.add_field(name="結果",value=result_text)
+
     if result[2] == 1:
         embed.add_field(name="エラー",value=r)
 
@@ -112,4 +129,4 @@ def run_python_file(file_name):
     
     return cp.stdout,cp.stderr,cp.returncode
 
-client.run(TOKEN)
+client.run(BOT_TOKEN)
