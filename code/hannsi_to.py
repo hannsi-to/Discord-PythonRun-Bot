@@ -1,2 +1,5 @@
-for i in range(0,200,1):
-    print(i)
+a = input(">")
+print(a)
+b = input(">")
+print(b)
+print(a + b)

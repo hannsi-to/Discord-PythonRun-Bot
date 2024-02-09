@@ -1,7 +1,7 @@
-import asyncio
+import re
 import discord
 import datetime
-import subprocess, sys
+import subprocess
 
 client = discord.Client(intents=discord.Intents.all())
 path = "code/"
@@ -75,12 +75,17 @@ async def on_message(message):
     if message.channel.name != RUN_CHANEL:
         return
 
-    code = message.content
+    code = ""
+    input_text = ""
+
+    code = get_str(str(message.content),"```python","```end1")
+    input_text = get_str(str(message.content),"```input","```end2")
+
     author = str(message.author)
 
-    print(author + " : " + code)
+    print(author + "\n===send message===\n" + message.content + "\n===code===\n" + code + "\n===input===\n" + input_text)
     create_python_file(author,code)
-    result = run_python_file(author)
+    result = run_python_file(author,input_text)
 
     error = result[1]
     r = "No Error"
@@ -114,10 +119,9 @@ def create_python_file(file_name,code):
     f.write(code)
     f.close()
 
-def run_python_file(file_name):
+def run_python_file(file_name,stdin):
     try:
-        cp = subprocess.run(["python", path + file_name + ".py"], encoding='CP932', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        print(cp.returncode)
+        cp = subprocess.run(["python", path + file_name + ".py"], encoding='CP932', stdout=subprocess.PIPE, stderr=subprocess.PIPE,input=stdin, text=True)
         print('stdout:' + cp.stdout)
         print('stderr:' + cp.stderr)
         print("return code:" + str(cp.returncode))
@@ -128,5 +132,11 @@ def run_python_file(file_name):
         raise cpe
     
     return cp.stdout,cp.stderr,cp.returncode
+
+def get_str(message,start,end):
+    idx1 = message.find(start)
+    temp_str = message[idx1 + len(start) + 1:]
+    idx2 = temp_str.find(end)
+    return temp_str[:idx2]
 
 client.run(BOT_TOKEN)
